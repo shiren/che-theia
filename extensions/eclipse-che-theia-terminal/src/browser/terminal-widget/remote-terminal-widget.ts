@@ -158,7 +158,13 @@ export class RemoteTerminalWidget extends TerminalWidgetImpl {
 
     protected async reconnectTerminalProcess(): Promise<void> {
         if (typeof this.terminalId === 'number') {
-            const termId = await this.termServer!.check({ id: this.terminalId });
+            let termId;
+            try {
+                termId = await this.termServer!.check({ id: this.terminalId });
+            } catch (error) {
+                termId = -1;
+            }
+
             if (!IBaseTerminalServer.validateId(termId)) {
                 return;
             }
@@ -203,6 +209,7 @@ export class RemoteTerminalWidget extends TerminalWidgetImpl {
 
     protected async connectSocket(id: number): Promise<void> {
         if (this.socket) {
+            this.resolveRemoteConnection();
             return Promise.resolve();
         }
         this.socket = this.createWebSocket(id.toString());
@@ -212,9 +219,7 @@ export class RemoteTerminalWidget extends TerminalWidgetImpl {
         let onDataDisposeHandler: IDisposable;
         this.socket.onopen = () => {
             this.term.reset();
-            if (this.waitForRemoteConnection) {
-                this.waitForRemoteConnection.resolve(this.socket);
-            }
+            this.resolveRemoteConnection();
 
             onDataDisposeHandler = this.term.onData(sendListener);
             this.socket.onmessage = ev => this.write(ev.data);
@@ -334,6 +339,12 @@ export class RemoteTerminalWidget extends TerminalWidgetImpl {
         this.interruptProcess().then(() => {
             super.dispose();
         });
+    }
+
+    private resolveRemoteConnection(): void {
+        if (this.waitForRemoteConnection) {
+            this.waitForRemoteConnection.resolve(this.socket);
+        }
     }
 
     private async interruptProcess(): Promise<void> {
