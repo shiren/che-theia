@@ -131,6 +131,9 @@ export function createAPIFactory(rpc: RPCProtocol): CheApiFactory {
             },
             getToken(): Promise<string> {
                 return cheGithubImpl.getToken();
+            },
+            getUser(): Promise<che.GitHubUser> {
+                return cheGithubImpl.getUser();
             }
         };
 
